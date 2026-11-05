@@ -1,6 +1,16 @@
-# Wedderburn Labs fork
+# WLAB Client SDK
 
-Fork of [traccar/traccar-client-sdk](https://github.com/traccar/traccar-client-sdk), Apache License 2.0. The changes are offered upstream. `main` here follows upstream, and our work sits on top of it.
+Wedderburn Labs fork of [traccar/traccar-client-sdk](https://github.com/traccar/traccar-client-sdk), by Anton Tananaev and contributors, Apache License 2.0. The changes below are offered upstream. `main` here follows upstream, and our work sits on top of it.
+
+## Names
+
+| | Upstream | This fork |
+|---|---|---|
+| Repository | `traccar/traccar-client-sdk` | `wedderburn-labs/wlab-client-sdk` |
+| npm package | `react-native-traccar-client-sdk` | `wlab-client-sdk` |
+| Maven | `org.traccar:traccar-client-sdk` | `za.co.wlab:wlab-client-sdk` |
+
+Code identifiers stay as upstream so merges stay clean and the licence and copyright notices stay accurate: the `org.traccar` packages, the `TraccarClientSDK` framework and the `TraccarClientSdk` native module.
 
 ## What changed from upstream
 
@@ -13,7 +23,11 @@ All of it is additive. With `batch.enabled` left off, and without calling `queue
 
 Files changed from upstream: `git diff upstream/main...main --stat`.
 
-Fork-only, not for upstream: this file, `.github/workflows/wlab.yml`, `scripts/package-react-native.sh`, the repository URLs in `react-native/`, and the repository guard in `.github/workflows/release.yml`.
+Fork-only, not for upstream: this file, `.github/workflows/wlab.yml`, `scripts/package-react-native.sh`, the names above, the Kotlin target below, and the repository guard in `.github/workflows/release.yml`.
+
+## Kotlin target
+
+The SDK builds with Kotlin 2.4 but targets language and API 2.3 and stdlib 2.3.x (`consumer-kotlin` and `consumer-stdlib` in `gradle/libs.versions.toml`). Expo 58 compiles with Kotlin 2.2, which reads metadata up to 2.3 only. Every dependency must stay at stdlib 2.3.x or lower for the same reason. `smoke-android` fails if one moves past it.
 
 ## Wire format
 
@@ -45,10 +59,10 @@ Releases are built by `.github/workflows/wlab.yml` when a `v*-wlab.*` tag is pus
 The React Native package is a tarball on the GitHub release that already contains the Android SDK and the iOS XCFramework, so nothing else is fetched and no credentials are needed:
 
 ```json
-"react-native-traccar-client-sdk": "https://github.com/wedderburn-labs/traccar-client-sdk/releases/download/v1.1.4-wlab.1/react-native-traccar-client-sdk-1.1.4-wlab.1.tgz"
+"wlab-client-sdk": "https://github.com/wedderburn-labs/wlab-client-sdk/releases/download/v1.1.4-wlab.1/wlab-client-sdk-1.1.4-wlab.1.tgz"
 ```
 
-The Maven Central, pub.dev and npm publishing in `release.yml` does not run in this fork.
+The Maven Central, pub.dev and npm publishing in `release.yml` does not run in this fork. The Flutter plugin is not used here and still points at upstream.
 
 ## Tests
 

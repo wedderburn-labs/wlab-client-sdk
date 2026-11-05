@@ -1,5 +1,9 @@
 [versions]
 kotlin = "2.4.20"
+# What the published SDK targets, so an app on an older Kotlin can compile against it.
+# Expo 58 uses Kotlin 2.2, which reads metadata up to 2.3. Stay at or below that.
+consumer-kotlin = "2.3"
+consumer-stdlib = "2.3.21"
 agp = "9.4.1"
 coroutines = "1.11.0"
 ktor = "3.6.0"

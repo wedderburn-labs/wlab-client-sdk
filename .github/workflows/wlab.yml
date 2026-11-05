@@ -55,7 +55,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: tarball
-          path: react-native/react-native-traccar-client-sdk-*.tgz
+          path: react-native/wlab-client-sdk-*.tgz
           compression-level: 0
 
   # Installs the tarball into a fresh Expo app with the same SDK and iOS framework
@@ -77,12 +77,12 @@ jobs:
           name: tarball
       - name: Create the app
         run: |
-          TARBALL="$PWD/$(ls react-native-traccar-client-sdk-*.tgz)"
+          TARBALL="$PWD/$(ls wlab-client-sdk-*.tgz)"
           npx --yes create-expo-app@latest smoke --template blank-typescript@sdk-58 --no-install
           cd smoke
           npm install
           npm install "$TARBALL"
-          echo "import 'react-native-traccar-client-sdk';" >> App.tsx
+          echo "import 'wlab-client-sdk';" >> App.tsx
           npx expo prebuild --platform android --no-install
       - name: Build
         working-directory: smoke/android
@@ -101,7 +101,7 @@ jobs:
           name: tarball
       - name: Create the app
         run: |
-          TARBALL="$PWD/$(ls react-native-traccar-client-sdk-*.tgz)"
+          TARBALL="$PWD/$(ls wlab-client-sdk-*.tgz)"
           npx --yes create-expo-app@latest smoke --template blank-typescript@sdk-58 --no-install
           cd smoke
           npm install
@@ -114,7 +114,7 @@ jobs:
             app.expo.plugins = [...(app.expo.plugins ?? []), ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }]];
             fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
           "
-          echo "import 'react-native-traccar-client-sdk';" >> App.tsx
+          echo "import 'wlab-client-sdk';" >> App.tsx
           npx expo prebuild --platform ios
       - name: Build
         working-directory: smoke/ios
@@ -139,5 +139,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" react-native-traccar-client-sdk-*.tgz \
+          gh release create "$GITHUB_REF_NAME" wlab-client-sdk-*.tgz \
             --title "$GITHUB_REF_NAME" --latest=false --prerelease --generate-notes

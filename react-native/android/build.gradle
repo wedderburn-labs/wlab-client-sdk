@@ -52,7 +52,7 @@ if (bundledSdk.exists()) {
     repositories {
       maven {
         url = bundledSdk.toURI()
-        content { includeGroup "org.traccar" }
+        content { includeGroup "za.co.wlab" }
       }
     }
   }
@@ -60,6 +60,6 @@ if (bundledSdk.exists()) {
 
 dependencies {
   implementation "com.facebook.react:react-android"
-  implementation "org.traccar:traccar-client-sdk:1.1.4"
+  implementation "za.co.wlab:wlab-client-sdk:1.1.4"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
 }

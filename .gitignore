@@ -21,3 +21,4 @@ react-native/android/maven/
 .flutter-plugins-dependencies
 flutter/pubspec.lock
 flutter/ios/FlutterFramework/
+react-native/LICENSE

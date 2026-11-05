@@ -1,7 +1,7 @@
 {
-  "name": "react-native-traccar-client-sdk",
+  "name": "wlab-client-sdk",
   "version": "1.1.4",
-  "description": "React Native module for background location tracking. Wraps the Traccar Client SDK for Android and iOS.",
+  "description": "React Native module for background location tracking. Fork of the Traccar Client SDK for Android and iOS.",
   "main": "./lib/module/index.js",
   "module": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
@@ -12,18 +12,17 @@
     "lib",
     "android",
     "ios",
-    "react-native-traccar-client-sdk.podspec",
+    "wlab-client-sdk.podspec",
     "!**/build",
     "!**/node_modules"
   ],
   "keywords": [
     "react-native",
-    "traccar",
     "location",
     "gps",
     "tracking"
   ],
-  "repository": "https://github.com/wedderburn-labs/traccar-client-sdk",
+  "repository": "https://github.com/wedderburn-labs/wlab-client-sdk",
   "license": "Apache-2.0",
   "peerDependencies": {
     "react": "*",

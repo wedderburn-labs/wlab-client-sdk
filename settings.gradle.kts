@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "traccar-client-sdk"
+rootProject.name = "wlab-client-sdk"
 
 include(":core")
 include(":samples:android")

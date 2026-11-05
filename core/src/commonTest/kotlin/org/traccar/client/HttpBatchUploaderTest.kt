@@ -60,6 +60,14 @@ class HttpBatchUploaderTest {
     }
 
     @Test
+    fun postsToTheProfileUploadUrlOverTlsOnItsDefaultPort() = runTest {
+        uploader(url = "https://track.wlab.co.za") { ok("""{"accepted":["a"]}""") }.upload(listOf(position("a")))
+        val url = requests.single().url
+        assertEquals("https://track.wlab.co.za/", url.toString())
+        assertEquals(443, url.port)
+    }
+
+    @Test
     fun doesNotDoubleATrailingSlash() = runTest {
         uploader(url = "https://track.example.com/") { ok("""{"accepted":["a"]}""") }.upload(listOf(position("a")))
         assertEquals("https://track.example.com/", requests.single().url.toString())

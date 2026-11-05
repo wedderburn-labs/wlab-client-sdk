@@ -1,4 +1,4 @@
-> **Fork.** This is the Wedderburn Labs fork of [traccar/traccar-client-sdk](https://github.com/traccar/traccar-client-sdk). See [FORK.md](FORK.md) for what changed.
+> **Fork.** This is WLAB Client SDK, the Wedderburn Labs fork of [traccar/traccar-client-sdk](https://github.com/traccar/traccar-client-sdk). See [FORK.md](FORK.md) for what changed. The rest of this page is upstream's.
 
 # Traccar Client SDK
 

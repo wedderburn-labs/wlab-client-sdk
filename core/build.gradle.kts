@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
@@ -9,7 +10,7 @@ plugins {
     alias(libs.plugins.vanniktechMavenPublish)
 }
 
-group = "org.traccar"
+group = "za.co.wlab"
 version = System.getenv("RELEASE_VERSION") ?: "0.0.1-SNAPSHOT"
 
 sqldelight {
@@ -21,6 +22,13 @@ sqldelight {
 }
 
 kotlin {
+    coreLibrariesVersion = libs.versions.consumer.stdlib.get()
+    compilerOptions {
+        val target = KotlinVersion.fromVersion(libs.versions.consumer.kotlin.get())
+        languageVersion.set(target)
+        apiVersion.set(target)
+    }
+
     android {
         namespace = "org.traccar.client"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -79,11 +87,11 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     // Fork releases ship inside the npm tarball, not through Maven Central.
     if (System.getenv("UNSIGNED_RELEASE") == null) signAllPublications()
-    coordinates("org.traccar", "traccar-client-sdk", version.toString())
+    coordinates("za.co.wlab", "wlab-client-sdk", version.toString())
     pom {
-        name.set("Traccar Client SDK")
-        description.set("Kotlin Multiplatform location tracking SDK for Traccar.")
-        url.set("https://github.com/traccar/traccar-client-sdk")
+        name.set("WLAB Client SDK")
+        description.set("Wedderburn Labs fork of the Traccar Client SDK: Kotlin Multiplatform location tracking.")
+        url.set("https://github.com/wedderburn-labs/wlab-client-sdk")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -98,9 +106,9 @@ mavenPublishing {
             }
         }
         scm {
-            url.set("https://github.com/traccar/traccar-client-sdk")
-            connection.set("scm:git:https://github.com/traccar/traccar-client-sdk.git")
-            developerConnection.set("scm:git:ssh://git@github.com/traccar/traccar-client-sdk.git")
+            url.set("https://github.com/wedderburn-labs/wlab-client-sdk")
+            connection.set("scm:git:https://github.com/wedderburn-labs/wlab-client-sdk.git")
+            developerConnection.set("scm:git:ssh://git@github.com/wedderburn-labs/wlab-client-sdk.git")
         }
     }
 }

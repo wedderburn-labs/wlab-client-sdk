@@ -21,11 +21,12 @@ RELEASE_VERSION="$VERSION" ./gradlew :core:assembleTraccarClientSDKReleaseXCFram
 echo "==> Assembling the package"
 rm -rf "$RN/android/maven" "$RN/ios/TraccarClientSDK.xcframework"
 mkdir -p "$RN/android/maven"
-cp -R "$M2/org" "$RN/android/maven/"
-rm -rf "$RN"/android/maven/org/traccar/traccar-client-sdk-ios*
+cp -R "$M2/za" "$RN/android/maven/"
+rm -rf "$RN"/android/maven/za/co/wlab/wlab-client-sdk-ios*
 find "$RN/android/maven" \( -name '*-sources.jar' -o -name '*-javadoc.jar' -o -name '*.asc' -o -name 'maven-metadata-local.xml' \) -delete
 cp -R "$ROOT/core/build/XCFrameworks/release/TraccarClientSDK.xcframework" "$RN/ios/"
-sed -i.bak "s|traccar-client-sdk:[^\"]*|traccar-client-sdk:$VERSION|" "$RN/android/build.gradle"
+cp "$ROOT/LICENSE" "$RN/LICENSE"
+sed -i.bak "s|wlab-client-sdk:[^\"]*|wlab-client-sdk:$VERSION|" "$RN/android/build.gradle"
 rm "$RN/android/build.gradle.bak"
 
 cd "$RN"
@@ -34,12 +35,13 @@ npm ci
 npm run typecheck
 npm pack
 
-TARBALL="$RN/react-native-traccar-client-sdk-$VERSION.tgz"
+TARBALL="$RN/wlab-client-sdk-$VERSION.tgz"
 echo "==> Checking the tarball"
 LIST="$(tar tzf "$TARBALL")"
 grep -q "package/lib/module/index.js" <<<"$LIST"
+grep -q "package/LICENSE" <<<"$LIST"
 grep -q "package/ios/TraccarClientSDK.xcframework/Info.plist" <<<"$LIST"
-grep -q "package/android/maven/org/traccar/traccar-client-sdk-android/$VERSION/" <<<"$LIST"
-grep -q "package/android/maven/org/traccar/traccar-client-sdk/$VERSION/" <<<"$LIST"
+grep -q "package/android/maven/za/co/wlab/wlab-client-sdk-android/$VERSION/" <<<"$LIST"
+grep -q "package/android/maven/za/co/wlab/wlab-client-sdk/$VERSION/" <<<"$LIST"
 ls -lh "$TARBALL"
 echo "==> Done: $TARBALL"
