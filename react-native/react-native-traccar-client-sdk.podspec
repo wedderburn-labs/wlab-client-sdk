@@ -11,7 +11,7 @@ Pod::Spec.new do |spec|
   spec.license      = package["license"]
   spec.authors      = "Traccar"
   spec.platforms    = { :ios => "15.0" }
-  spec.source       = { :git => "https://github.com/traccar/traccar-client-sdk.git", :tag => "v#{version}" }
+  spec.source       = { :git => "https://github.com/wedderburn-labs/traccar-client-sdk.git", :tag => "v#{version}" }
 
   spec.source_files = "ios/**/*.{h,m,mm,swift}"
   spec.vendored_frameworks = "ios/TraccarClientSDK.xcframework"
@@ -26,7 +26,7 @@ Pod::Spec.new do |spec|
   spec.prepare_command = <<-CMD
     if [ ! -d "ios/TraccarClientSDK.xcframework" ]; then
       curl -L -f -o ios/TraccarClientSDK.xcframework.zip \
-        "https://github.com/traccar/traccar-client-sdk/releases/download/v#{version}/TraccarClientSDK.xcframework.zip"
+        "https://github.com/wedderburn-labs/traccar-client-sdk/releases/download/v#{version}/TraccarClientSDK.xcframework.zip"
       unzip -q -o ios/TraccarClientSDK.xcframework.zip -d ios
       rm -f ios/TraccarClientSDK.xcframework.zip
     fi

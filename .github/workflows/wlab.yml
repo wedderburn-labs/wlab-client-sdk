@@ -1,0 +1,143 @@
+name: WLAB
+
+on:
+  push:
+    branches: ['wlab/**', main]
+    tags: ['v*-wlab.*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Android host tests
+        run: ./gradlew :core:testAndroidHostTest --console=plain
+      - name: iOS simulator tests
+        run: ./gradlew :core:iosSimulatorArm64Test --console=plain
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: core/build/reports/tests/
+
+  package:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=1.1.4-wlab.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+      - run: scripts/package-react-native.sh "${{ steps.version.outputs.version }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tarball
+          path: react-native/react-native-traccar-client-sdk-*.tgz
+          compression-level: 0
+
+  # Installs the tarball into a fresh Expo app with the same SDK and iOS framework
+  # linkage as WLAB Track, so a release is known to build before anything depends on it.
+  smoke-android:
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v5
+        with:
+          name: tarball
+      - name: Create the app
+        run: |
+          TARBALL="$PWD/$(ls react-native-traccar-client-sdk-*.tgz)"
+          npx --yes create-expo-app@latest smoke --template blank-typescript@sdk-58 --no-install
+          cd smoke
+          npm install
+          npm install "$TARBALL"
+          echo "import 'react-native-traccar-client-sdk';" >> App.tsx
+          npx expo prebuild --platform android --no-install
+      - name: Build
+        working-directory: smoke/android
+        run: ./gradlew :app:assembleDebug --console=plain
+
+  smoke-ios:
+    needs: package
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v5
+        with:
+          name: tarball
+      - name: Create the app
+        run: |
+          TARBALL="$PWD/$(ls react-native-traccar-client-sdk-*.tgz)"
+          npx --yes create-expo-app@latest smoke --template blank-typescript@sdk-58 --no-install
+          cd smoke
+          npm install
+          npm install "$TARBALL"
+          npx expo install expo-build-properties
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json'));
+            app.expo.ios = { ...app.expo.ios, bundleIdentifier: 'com.example.smoke' };
+            app.expo.plugins = [...(app.expo.plugins ?? []), ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }]];
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2));
+          "
+          echo "import 'react-native-traccar-client-sdk';" >> App.tsx
+          npx expo prebuild --platform ios
+      - name: Build
+        working-directory: smoke/ios
+        run: |
+          xcodebuild -workspace smoke.xcworkspace -scheme smoke -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+          test "${PIPESTATUS[0]}" -eq 0
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, package, smoke-android, smoke-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: tarball
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" react-native-traccar-client-sdk-*.tgz \
+            --title "$GITHUB_REF_NAME" --latest=false --prerelease --generate-notes

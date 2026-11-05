@@ -44,6 +44,20 @@ repositories {
   google()
 }
 
+// Fork builds ship the SDK inside this package instead of on Maven Central. The
+// app resolves it too, and only uses its own repositories, so add this one to all.
+def bundledSdk = new File(projectDir, "maven")
+if (bundledSdk.exists()) {
+  rootProject.allprojects {
+    repositories {
+      maven {
+        url = bundledSdk.toURI()
+        content { includeGroup "org.traccar" }
+      }
+    }
+  }
+}
+
 dependencies {
   implementation "com.facebook.react:react-android"
   implementation "org.traccar:traccar-client-sdk:1.1.4"

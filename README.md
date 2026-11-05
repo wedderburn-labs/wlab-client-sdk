@@ -1,3 +1,5 @@
+> **Fork.** This is the Wedderburn Labs fork of [traccar/traccar-client-sdk](https://github.com/traccar/traccar-client-sdk). See [FORK.md](FORK.md) for what changed.
+
 # Traccar Client SDK
 
 A Kotlin Multiplatform background location tracking SDK for [Traccar](https://www.traccar.org) - and any other server that accepts the same simple HTTP protocol. Runs on Android and iOS, with Flutter and React Native wrappers.

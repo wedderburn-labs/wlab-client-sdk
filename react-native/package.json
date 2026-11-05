@@ -23,7 +23,7 @@
     "gps",
     "tracking"
   ],
-  "repository": "https://github.com/traccar/traccar-client-sdk",
+  "repository": "https://github.com/wedderburn-labs/traccar-client-sdk",
   "license": "Apache-2.0",
   "peerDependencies": {
     "react": "*",

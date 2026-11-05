@@ -7,6 +7,7 @@ on:
 
 jobs:
   release:
+    if: github.repository == 'traccar/traccar-client-sdk'
     runs-on: macos-latest
     permissions:
       contents: write

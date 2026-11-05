@@ -16,6 +16,7 @@ xcuserdata/
 
 node_modules/
 react-native/lib/
+react-native/android/maven/
 .dart_tool/
 .flutter-plugins-dependencies
 flutter/pubspec.lock
