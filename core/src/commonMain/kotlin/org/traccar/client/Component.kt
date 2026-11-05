@@ -1,5 +1,6 @@
 package org.traccar.client
 
+import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -36,7 +37,9 @@ fun interface PositionProcessor {
     suspend fun process(position: Position): Position?
 }
 
-class ComponentCoroutineScope : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.Default)
+class ComponentCoroutineScope(
+    context: CoroutineContext = SupervisorJob() + Dispatchers.Default,
+) : CoroutineScope by CoroutineScope(context)
 
 internal fun <T> CoroutineScope.observeState(
     state: StateFlow<State>,

@@ -36,6 +36,23 @@ export interface NotificationConfig {
   text?: string;
 }
 
+/**
+ * Batched upload: one gzip JSON array per request, confirmed per position.
+ * Off by default. The server must answer with `accepted` and `rejected` ids,
+ * and nothing is deleted from the queue until it does.
+ */
+export interface BatchConfig {
+  enabled?: boolean;
+  /** Most positions in one request. */
+  maxPositions?: number;
+  /** Most uncompressed JSON bytes in one request. */
+  maxBytes?: number;
+  /** How long live positions gather before a send. */
+  flushSeconds?: number;
+  /** Upper bound of the random delay before sending after a gap in coverage. */
+  jitterSeconds?: number;
+}
+
 /** Tracker configuration. Pass to `init` or `setConfig`. */
 export interface Config {
   serverUrl: string;
@@ -57,6 +74,19 @@ export interface Config {
    */
   preferPlatformProviders?: boolean;
   notification?: NotificationConfig;
+  batch?: BatchConfig;
+}
+
+/** The local upload queue. */
+export interface QueueStatus {
+  /** Positions waiting to upload. */
+  queued: number;
+  /** Positions the server refused for good. Kept, never re-sent. */
+  rejected: number;
+  /** How many of `queued` carry an alarm. */
+  queuedAlarms: number;
+  /** How many of `rejected` carry an alarm. */
+  rejectedAlarms: number;
 }
 
 /** A single diagnostic log entry. */
@@ -69,6 +99,7 @@ export interface LogEntry {
 function normalizeConfig(config: Config): Required<Config> {
   const location = config.location ?? {};
   const notification = config.notification ?? {};
+  const batch = config.batch ?? {};
   return {
     serverUrl: config.serverUrl,
     headers: config.headers ?? {},
@@ -88,6 +119,13 @@ function normalizeConfig(config: Config): Required<Config> {
     preferPlatformProviders: config.preferPlatformProviders ?? false,
     notification: {
       text: notification.text ?? 'Location tracking',
+    },
+    batch: {
+      enabled: batch.enabled ?? false,
+      maxPositions: batch.maxPositions ?? 500,
+      maxBytes: batch.maxBytes ?? 1_000_000,
+      flushSeconds: batch.flushSeconds ?? 10,
+      jitterSeconds: batch.jitterSeconds ?? 30,
     },
   };
 }
@@ -133,6 +171,30 @@ export function stop(): Promise<void> {
  */
 export function requestPosition(alarm?: string): Promise<boolean> {
   return TraccarClientSdk.requestPosition(alarm ?? null);
+}
+
+/**
+ * Takes one position and stores it in the upload queue, so it survives no
+ * signal and app restarts. Resolves with the position's client id once stored.
+ * Works independently of `start` / `stop`, but the queue only sends while the
+ * app process is running.
+ *
+ * An `alarm` (e.g. `"sos"`) goes first and skips the flush delay and jitter.
+ * Waits up to 10 s for a fix, then uses the last known place, or no
+ * coordinates at all: a missing fix or location permission never stops it.
+ * Its time is always now; `extras.fixTime` holds the time of the location.
+ * `extras` travel with the position, e.g. `{ sosId }`.
+ */
+export function queuePosition(
+  alarm?: string,
+  extras?: Record<string, string>
+): Promise<string> {
+  return TraccarClientSdk.queuePosition(alarm ?? null, extras ?? null);
+}
+
+/** Resolves with the current state of the upload queue. */
+export function getQueueStatus(): Promise<QueueStatus> {
+  return TraccarClientSdk.getQueueStatus();
 }
 
 /** Resolves with whether tracking is currently active. */

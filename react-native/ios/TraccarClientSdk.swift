@@ -79,6 +79,41 @@ class TraccarClientSdk: NSObject {
     }
   }
 
+  @objc(queuePosition:extras:resolver:rejecter:)
+  func queuePosition(
+    _ alarm: NSString?,
+    extras: NSDictionary?,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    let parsed = extras as? [String: String] ?? [:]
+    run(resolve, reject) {
+      guard let tracker = try await TrackerKt.sharedTracker() else {
+        throw TrackerError.notInitialized
+      }
+      return try await tracker.queuePosition(alarm: alarm as String?, extras: parsed)
+    }
+  }
+
+  @objc(getQueueStatus:rejecter:)
+  func getQueueStatus(
+    _ resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    run(resolve, reject) {
+      guard let tracker = try await TrackerKt.sharedTracker() else {
+        throw TrackerError.notInitialized
+      }
+      let status = try await tracker.queueStatus()
+      return [
+        "queued": Int(status.queued),
+        "rejected": Int(status.rejected),
+        "queuedAlarms": Int(status.queuedAlarms),
+        "rejectedAlarms": Int(status.rejectedAlarms),
+      ] as [String: Any]
+    }
+  }
+
   @objc(isTracking:rejecter:)
   func isTracking(
     _ resolve: @escaping RCTPromiseResolveBlock,
@@ -133,6 +168,7 @@ class TraccarClientSdk: NSObject {
   private func parseConfig(_ args: NSDictionary) -> Config {
     let location = args["location"] as! [String: Any]
     let notification = args["notification"] as! [String: Any]
+    let batch = args["batch"] as! [String: Any]
     return Config(
       serverUrl: args["serverUrl"] as! String,
       deviceId: args["deviceId"] as! String,
@@ -150,7 +186,14 @@ class TraccarClientSdk: NSObject {
       buffer: args["buffer"] as! Bool,
       preferPlatformProviders: args["preferPlatformProviders"] as! Bool,
       notification: NotificationConfig(text: notification["text"] as! String),
-      headers: args["headers"] as? [String: String] ?? [:]
+      headers: args["headers"] as? [String: String] ?? [:],
+      batch: BatchConfig(
+        enabled: batch["enabled"] as! Bool,
+        maxPositions: Int32(batch["maxPositions"] as! Int),
+        maxBytes: Int32(batch["maxBytes"] as! Int),
+        flushSeconds: Int32(batch["flushSeconds"] as! Int),
+        jitterSeconds: Int32(batch["jitterSeconds"] as! Int)
+      )
     )
   }
 

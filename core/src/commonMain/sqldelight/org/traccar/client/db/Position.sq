@@ -8,19 +8,64 @@ CREATE TABLE Position (
     speed REAL,
     bearing REAL,
     battery INTEGER,
-    charging INTEGER
+    charging INTEGER,
+    uuid TEXT,
+    device_id TEXT,
+    alarm TEXT,
+    moving INTEGER,
+    extras TEXT,
+    rejected_reason TEXT
 );
 
+CREATE UNIQUE INDEX Position_uuid ON Position(uuid);
+
 enqueue:
-INSERT INTO Position(latitude, longitude, accuracy, time, altitude, speed, bearing, battery, charging)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO Position(latitude, longitude, accuracy, time, altitude, speed, bearing, battery, charging, uuid, device_id, alarm, moving, extras)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 peek:
-SELECT latitude, longitude, accuracy, time, altitude, speed, bearing, battery, charging
+SELECT latitude, longitude, accuracy, time, altitude, speed, bearing, battery, charging, uuid, device_id, alarm, moving, extras
 FROM Position
+WHERE rejected_reason IS NULL
 ORDER BY id ASC
 LIMIT 1;
 
 removeFirst:
 DELETE FROM Position
-WHERE id = (SELECT MIN(id) FROM Position);
+WHERE id = (SELECT MIN(id) FROM Position WHERE rejected_reason IS NULL);
+
+-- Alarms first, then the newest fix, then the backlog from oldest to newest.
+nextBatch:
+SELECT latitude, longitude, accuracy, time, altitude, speed, bearing, battery, charging, uuid, device_id, alarm, moving, extras
+FROM Position
+WHERE rejected_reason IS NULL
+ORDER BY
+    CASE
+        WHEN alarm IS NOT NULL THEN 0
+        WHEN id = (SELECT newest.id FROM Position newest WHERE newest.rejected_reason IS NULL ORDER BY newest.time DESC, newest.id DESC LIMIT 1) THEN 1
+        ELSE 2
+    END,
+    CASE WHEN alarm IS NOT NULL THEN -time ELSE time END,
+    id
+LIMIT :limit;
+
+removeByUuid:
+DELETE FROM Position
+WHERE uuid IN :uuids;
+
+reject:
+UPDATE Position
+SET rejected_reason = :reason
+WHERE uuid = :uuid;
+
+countQueued:
+SELECT COUNT(*) FROM Position WHERE rejected_reason IS NULL;
+
+countRejected:
+SELECT COUNT(*) FROM Position WHERE rejected_reason IS NOT NULL;
+
+countQueuedAlarms:
+SELECT COUNT(*) FROM Position WHERE rejected_reason IS NULL AND alarm IS NOT NULL;
+
+countRejectedAlarms:
+SELECT COUNT(*) FROM Position WHERE rejected_reason IS NOT NULL AND alarm IS NOT NULL;

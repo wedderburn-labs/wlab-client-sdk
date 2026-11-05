@@ -12,9 +12,27 @@ data class Config(
     val preferPlatformProviders: Boolean = false,
     val notification: NotificationConfig = NotificationConfig(),
     val headers: Map<String, String> = emptyMap(),
+    val batch: BatchConfig = BatchConfig(),
 ) {
     constructor(serverUrl: String, deviceId: String) : this(serverUrl, deviceId, LocationConfig())
 }
+
+/**
+ * Batched upload. Off by default: each position then goes as one form post, as before.
+ * When on, positions always go through the local queue, whatever `buffer` says.
+ */
+@Serializable
+data class BatchConfig(
+    val enabled: Boolean = false,
+    /** Most positions in one request. */
+    val maxPositions: Int = 500,
+    /** Most uncompressed JSON bytes in one request. */
+    val maxBytes: Int = 1_000_000,
+    /** How long live positions gather before a send. */
+    val flushSeconds: Int = 10,
+    /** Upper bound of the random delay before sending after a gap in coverage. */
+    val jitterSeconds: Int = 30,
+)
 
 @Serializable
 data class NotificationConfig(

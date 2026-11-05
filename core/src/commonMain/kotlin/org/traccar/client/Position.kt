@@ -16,4 +16,10 @@ data class Position(
     val charging: Boolean? = null,
     val alarm: String? = null,
     @Transient val heartbeat: Boolean = false,
+    /** Client id, stable across retries. Assigned when the position is queued. */
+    val id: String? = null,
+    /** The device this position was recorded for, kept so a later config change can't relabel it. */
+    val deviceId: String? = null,
+    val moving: Boolean? = null,
+    val extras: Map<String, String> = emptyMap(),
 )

@@ -1,0 +1,10 @@
+ALTER TABLE Position ADD COLUMN uuid TEXT;
+ALTER TABLE Position ADD COLUMN device_id TEXT;
+ALTER TABLE Position ADD COLUMN alarm TEXT;
+ALTER TABLE Position ADD COLUMN moving INTEGER;
+ALTER TABLE Position ADD COLUMN extras TEXT;
+ALTER TABLE Position ADD COLUMN rejected_reason TEXT;
+
+UPDATE Position SET uuid = lower(hex(randomblob(16)));
+
+CREATE UNIQUE INDEX Position_uuid ON Position(uuid);

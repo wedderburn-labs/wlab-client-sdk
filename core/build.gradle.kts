@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
 
 plugins {
@@ -25,6 +26,7 @@ kotlin {
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
         androidResources.enable = true
+        withHostTest {}
     }
 
     val xcframework = XCFramework("TraccarClientSDK")
@@ -38,6 +40,9 @@ kotlin {
             baseName = "TraccarClientSDK"
             isStatic = true
             xcframework.add(this)
+        }
+        iosTarget.binaries.configureEach {
+            if (this is TestExecutable) linkerOpts("-lsqlite3")
         }
     }
 
@@ -61,13 +66,19 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
         }
     }
 }
 
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
-    signAllPublications()
+    // Fork releases ship inside the npm tarball, not through Maven Central.
+    if (System.getenv("UNSIGNED_RELEASE") == null) signAllPublications()
     coordinates("org.traccar", "traccar-client-sdk", version.toString())
     pom {
         name.set("Traccar Client SDK")

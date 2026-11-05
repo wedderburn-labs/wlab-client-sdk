@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.traccar.client.Accuracy
+import org.traccar.client.BatchConfig
 import org.traccar.client.Config
 import org.traccar.client.LocationConfig
 import org.traccar.client.NotificationConfig
@@ -62,6 +63,22 @@ class TraccarClientSdkModule(
     }
 
     @ReactMethod
+    fun queuePosition(alarm: String?, extras: ReadableMap?, promise: Promise) = scope.resolve(promise) {
+        sharedTracker()!!.queuePosition(alarm, parseExtras(extras))
+    }
+
+    @ReactMethod
+    fun getQueueStatus(promise: Promise) = scope.resolve(promise) {
+        val status = sharedTracker()!!.queueStatus()
+        Arguments.createMap().apply {
+            putInt("queued", status.queued)
+            putInt("rejected", status.rejected)
+            putInt("queuedAlarms", status.queuedAlarms)
+            putInt("rejectedAlarms", status.rejectedAlarms)
+        }
+    }
+
+    @ReactMethod
     fun isTracking(promise: Promise) = scope.resolve(promise) {
         sharedTracker()?.state?.value?.enabled ?: false
     }
@@ -97,10 +114,14 @@ class TraccarClientSdkModule(
         }
     }
 
+    private fun parseExtras(extras: ReadableMap?): Map<String, String> =
+        extras?.toHashMap().orEmpty().mapNotNull { (key, value) -> (value as? String)?.let { key to it } }.toMap()
+
     @Suppress("UNCHECKED_CAST")
     private fun parseConfig(config: ReadableMap): Config {
         val location = config.getMap("location")!!
         val notification = config.getMap("notification")!!
+        val batch = config.getMap("batch")!!
         return Config(
             serverUrl = config.getString("serverUrl")!!,
             headers = config.getMap("headers")?.toHashMap() as? Map<String, String> ?: emptyMap(),
@@ -119,6 +140,13 @@ class TraccarClientSdkModule(
             buffer = config.getBoolean("buffer"),
             preferPlatformProviders = config.getBoolean("preferPlatformProviders"),
             notification = NotificationConfig(text = notification.getString("text")!!),
+            batch = BatchConfig(
+                enabled = batch.getBoolean("enabled"),
+                maxPositions = batch.getInt("maxPositions"),
+                maxBytes = batch.getInt("maxBytes"),
+                flushSeconds = batch.getInt("flushSeconds"),
+                jitterSeconds = batch.getInt("jitterSeconds"),
+            ),
         )
     }
 }

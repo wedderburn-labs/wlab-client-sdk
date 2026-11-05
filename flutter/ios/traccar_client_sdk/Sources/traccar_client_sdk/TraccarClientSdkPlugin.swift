@@ -98,7 +98,8 @@ public class TraccarClientSdkPlugin: NSObject, FlutterPlugin {
       buffer: args["buffer"] as! Bool,
       preferPlatformProviders: args["preferPlatformProviders"] as! Bool,
       notification: NotificationConfig(text: notification["text"] as! String),
-      headers: args["headers"] as? [String: String] ?? [:]
+      headers: args["headers"] as? [String: String] ?? [:],
+      batch: BatchConfig(enabled: false, maxPositions: 500, maxBytes: 1_000_000, flushSeconds: 10, jitterSeconds: 30)
     )
   }
 

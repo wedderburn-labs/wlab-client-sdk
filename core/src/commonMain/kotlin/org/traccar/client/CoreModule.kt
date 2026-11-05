@@ -13,6 +13,7 @@ internal fun coreModule(): Module = module {
     single { ComponentCoroutineScope() }
 
     single<Uploader> { HttpUploader(get(), get()) }
+    single<BatchUploader> { HttpBatchUploader(get(), get()) }
     single { LocationFilter(get(), get()) }
 
     single {
@@ -26,6 +27,9 @@ internal fun coreModule(): Module = module {
             uploader = get(),
             buffer = get<Config>().buffer,
             scope = get(),
+            deviceId = get<Config>().deviceId,
+            batchUploader = get<BatchUploader>().takeIf { get<Config>().batch.enabled },
+            batch = get<Config>().batch,
         )
     }
 
@@ -36,6 +40,8 @@ internal fun coreModule(): Module = module {
             locationSource = get(),
             batteryProcessor = get(),
             uploader = get(),
+            queue = get(),
+            engine = get(),
             componentScope = get(),
         )
     }

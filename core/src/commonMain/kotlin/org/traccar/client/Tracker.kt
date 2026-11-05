@@ -1,5 +1,8 @@
 package org.traccar.client
 
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.cancelAndJoin
@@ -8,8 +11,11 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.core.Koin
 import org.koin.dsl.koinApplication
+
+internal val QUEUE_FIX_TIMEOUT = 10.seconds
 
 class Tracker internal constructor(
     val config: Config,
@@ -17,6 +23,8 @@ class Tracker internal constructor(
     private val locationSource: LocationSource,
     private val batteryProcessor: PositionProcessor,
     private val uploader: Uploader,
+    private val queue: PositionQueue,
+    private val engine: TrackerEngine,
     private val componentScope: ComponentCoroutineScope,
 ) {
     val state: StateFlow<State> = stateStore.state
@@ -41,6 +49,27 @@ class Tracker internal constructor(
         val processed = batteryProcessor.process(raw)?.copy(alarm = alarm) ?: return false
         return uploader.upload(processed)
     }
+
+    /**
+     * Takes one position and stores it in the queue, so it survives no signal and app restarts.
+     * Returns its client id once it is safely stored. An alarm jumps the queue and skips the flush
+     * delay and jitter. No fix within [QUEUE_FIX_TIMEOUT] does not stop it: the position goes with
+     * the last known coordinates, or with none. Its time is always now, with the time of the
+     * location itself in the `fixTime` extra.
+     */
+    suspend fun queuePosition(alarm: String? = null, extras: Map<String, String> = emptyMap()): String {
+        Log.log("Position queued${alarm?.let { " alarm=$it" } ?: ""}")
+        val now = Clock.System.now().toEpochMilliseconds()
+        val fix = withTimeoutOrNull(QUEUE_FIX_TIMEOUT) { locationSource.fetchOnce() }
+        val source = fix ?: stateStore.state.value.lastAcceptedLocation
+        val located = source?.takeIf { it.latitude != null && it.longitude != null }
+        val fixTime = located?.let { mapOf("fixTime" to Instant.fromEpochMilliseconds(it.time).toString()) }
+        val position = (located ?: Position(time = now)).copy(time = now, battery = null, charging = null)
+        val processed = batteryProcessor.process(position) ?: position
+        return engine.submit(processed.copy(alarm = alarm, extras = fixTime.orEmpty() + extras))
+    }
+
+    suspend fun queueStatus(): QueueStatus = queue.status()
 
     suspend fun getLogs(): List<LogEntry> = Log.store?.all() ?: emptyList()
 
