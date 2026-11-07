@@ -32,7 +32,6 @@ class HttpBatchUploader(
     override suspend fun upload(positions: List<Position>): BatchResult = try {
         val batch = encodeBatch(
             positions = positions,
-            fallbackDeviceId = config.deviceId,
             maxPositions = config.batch.maxPositions,
             maxBytes = config.batch.maxBytes,
         )

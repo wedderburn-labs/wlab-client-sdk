@@ -43,7 +43,11 @@ class TrackerEngine internal constructor(
     init {
         scope.launch { signalSources.map { it.signals }.merge().collect { handle(it) } }
         scope.launch { pipelineLoop() }
-        scope.launch { if (batchUploader != null) batchSyncLoop(batchUploader) else syncLoop() }
+        scope.launch {
+            // A position must never go out under a device it wasn't recorded for.
+            queue.rejectWithoutDevice(NO_DEVICE_REASON)
+            if (batchUploader != null) batchSyncLoop(batchUploader) else syncLoop()
+        }
     }
 
     /** Stores [position] and wakes the sender. Returns the position's client id. */
@@ -208,5 +212,6 @@ class TrackerEngine internal constructor(
 
         /** A rejection whose reason starts with this stays queued. All others are final. */
         const val RETRY_REASON_PREFIX = "retry"
+        const val NO_DEVICE_REASON = "no_device"
     }
 }

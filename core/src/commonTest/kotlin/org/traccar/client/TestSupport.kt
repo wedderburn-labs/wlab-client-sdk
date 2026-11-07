@@ -50,6 +50,10 @@ internal class FakeQueue : PositionQueue {
         rejections += reasons
     }
 
+    override suspend fun rejectWithoutDevice(reason: String) {
+        live.filter { it.deviceId == null }.mapNotNull { it.id }.forEach { rejections[it] = reason }
+    }
+
     override suspend fun status() = QueueStatus(
         queued = live.size,
         rejected = rejections.size,

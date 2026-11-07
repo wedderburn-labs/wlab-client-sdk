@@ -17,7 +17,7 @@ class HttpUploader(
         val response: HttpResponse = httpClient.submitForm(
             url = config.serverUrl,
             formParameters = Parameters.build {
-                append("id", config.deviceId)
+                append("id", position.deviceId ?: config.deviceId)
                 position.latitude?.let { append("lat", it.toString()) }
                 position.longitude?.let { append("lon", it.toString()) }
                 append("timestamp", (position.time / 1000).toString())

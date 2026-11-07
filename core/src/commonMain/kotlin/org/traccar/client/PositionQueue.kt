@@ -14,6 +14,9 @@ interface PositionQueue {
     /** Keeps these positions but stops sending them. Maps id to the server's reason. */
     suspend fun reject(reasons: Map<String, String>)
 
+    /** Stops sending rows stored without a device, keeping them. Only an upgrade leaves any. */
+    suspend fun rejectWithoutDevice(reason: String)
+
     suspend fun status(): QueueStatus
 }
 

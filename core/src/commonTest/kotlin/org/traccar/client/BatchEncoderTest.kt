@@ -31,11 +31,11 @@ class BatchEncoderTest {
     )
 
     private fun location(position: Position) =
-        position.toBatchJson("fallback").getValue("location").jsonObject
+        position.toBatchJson().getValue("location").jsonObject
 
     @Test
     fun matchesTheContractShape() {
-        val json = full.toBatchJson("fallback")
+        val json = full.toBatchJson()
         assertEquals("abc", json.getValue("id").jsonPrimitive.content)
         assertEquals("rider-1", json.getValue("device_id").jsonPrimitive.content)
 
@@ -82,7 +82,7 @@ class BatchEncoderTest {
     @Test
     fun unknownCoordinateValuesAreSentAsTheDecoderExpects() {
         // The osmand decoder reads all six keys without checking they exist.
-        val coords = location(Position(latitude = 1.0, longitude = 2.0, time = 0, id = "a"))
+        val coords = location(Position(latitude = 1.0, longitude = 2.0, time = 0, id = "a", deviceId = "rider-1"))
             .getValue("coords").jsonObject
         assertEquals(-1.0, coords.getValue("accuracy").jsonPrimitive.double)
         assertEquals(-1.0, coords.getValue("speed").jsonPrimitive.double)
@@ -92,18 +92,22 @@ class BatchEncoderTest {
 
     @Test
     fun aPositionWithoutCoordinatesOmitsCoords() {
-        assertFalse("coords" in location(Position(time = 0, id = "a")))
+        assertFalse("coords" in location(Position(time = 0, id = "a", deviceId = "rider-1")))
     }
 
     @Test
-    fun usesTheConfiguredDeviceOnlyWhenThePositionHasNone() {
-        assertEquals("fallback", Position(time = 0, id = "a").toBatchJson("fallback").getValue("device_id").jsonPrimitive.content)
-        assertEquals("rider-1", full.toBatchJson("fallback").getValue("device_id").jsonPrimitive.content)
+    fun sendsTheDeviceStoredWithThePosition() {
+        assertEquals("rider-1", full.toBatchJson().getValue("device_id").jsonPrimitive.content)
+    }
+
+    @Test
+    fun refusesAPositionWithoutADevice() {
+        assertFailsWith<IllegalStateException> { Position(time = 0, id = "a").toBatchJson() }
     }
 
     @Test
     fun refusesAPositionWithoutAnId() {
-        assertFailsWith<IllegalStateException> { Position(time = 0).toBatchJson("fallback") }
+        assertFailsWith<IllegalStateException> { Position(time = 0).toBatchJson() }
     }
 
     private fun ids(encoded: EncodedBatch): List<String> =
@@ -112,13 +116,13 @@ class BatchEncoderTest {
 
     @Test
     fun keepsTheOrderItWasGiven() {
-        val batch = encodeBatch(listOf(position("c"), position("a"), position("b")), "x", 500, 1_000_000)
+        val batch = encodeBatch(listOf(position("c"), position("a"), position("b")), 500, 1_000_000)
         assertEquals(listOf("c", "a", "b"), ids(batch))
     }
 
     @Test
     fun stopsAtMaxPositions() {
-        val batch = encodeBatch((1..600).map { position("p$it") }, "x", 500, 10_000_000)
+        val batch = encodeBatch((1..600).map { position("p$it") }, 500, 10_000_000)
         assertEquals(500, batch.positions.size)
         assertEquals(500, Json.parseToJsonElement(batch.json).jsonArray.size)
     }
@@ -126,9 +130,9 @@ class BatchEncoderTest {
     @Test
     fun stopsBeforeMaxBytes() {
         val positions = (1..50).map { position("p$it") }
-        val one = encodeBatch(positions.take(1), "x", 500, 1_000_000).json.encodeToByteArray().size
+        val one = encodeBatch(positions.take(1), 500, 1_000_000).json.encodeToByteArray().size
         val limit = one * 10
-        val batch = encodeBatch(positions, "x", 500, limit)
+        val batch = encodeBatch(positions, 500, limit)
         assertTrue(batch.json.encodeToByteArray().size <= limit)
         assertTrue(batch.positions.size in 9..10, "got ${batch.positions.size}")
         assertEquals(batch.positions.size, Json.parseToJsonElement(batch.json).jsonArray.size)
@@ -136,13 +140,13 @@ class BatchEncoderTest {
 
     @Test
     fun aRealisticFullBatchFitsTheByteLimit() {
-        val batch = encodeBatch((1..500).map { full.copy(id = newPositionId()) }, "x", 500, 1_000_000)
+        val batch = encodeBatch((1..500).map { full.copy(id = newPositionId()) }, 500, 1_000_000)
         assertEquals(500, batch.positions.size)
     }
 
     @Test
     fun alwaysSendsAtLeastOne() {
-        val batch = encodeBatch(listOf(position("big").copy(extras = mapOf("k" to "v".repeat(5000)))), "x", 500, 100)
+        val batch = encodeBatch(listOf(position("big").copy(extras = mapOf("k" to "v".repeat(5000)))), 500, 100)
         assertEquals(1, batch.positions.size)
     }
 }

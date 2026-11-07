@@ -58,6 +58,11 @@ UPDATE Position
 SET rejected_reason = :reason
 WHERE uuid = :uuid;
 
+rejectWithoutDevice:
+UPDATE Position
+SET rejected_reason = :reason
+WHERE device_id IS NULL AND rejected_reason IS NULL;
+
 countQueued:
 SELECT COUNT(*) FROM Position WHERE rejected_reason IS NULL;
 

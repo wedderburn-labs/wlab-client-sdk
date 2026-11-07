@@ -17,7 +17,6 @@ internal class EncodedBatch(val json: String, val positions: List<Position>)
  */
 internal fun encodeBatch(
     positions: List<Position>,
-    fallbackDeviceId: String,
     maxPositions: Int,
     maxBytes: Int,
 ): EncodedBatch {
@@ -25,7 +24,7 @@ internal fun encodeBatch(
     val included = mutableListOf<Position>()
     var bytes = 2 // the array's brackets
     for (position in positions.take(maxPositions)) {
-        val item = position.toBatchJson(fallbackDeviceId).toString()
+        val item = position.toBatchJson().toString()
         val size = item.encodeToByteArray().size + if (items.isEmpty()) 0 else 1
         if (items.isNotEmpty() && bytes + size > maxBytes) break
         items += item
@@ -35,9 +34,9 @@ internal fun encodeBatch(
     return EncodedBatch(items.joinToString(",", "[", "]"), included)
 }
 
-internal fun Position.toBatchJson(fallbackDeviceId: String): JsonObject = buildJsonObject {
+internal fun Position.toBatchJson(): JsonObject = buildJsonObject {
     put("id", checkNotNull(id) { "Queued position has no id" })
-    put("device_id", deviceId ?: fallbackDeviceId)
+    put("device_id", checkNotNull(deviceId) { "A batched position needs its device" })
     putJsonObject("location") {
         put("timestamp", Instant.fromEpochMilliseconds(time).toString())
         if (latitude != null && longitude != null) {

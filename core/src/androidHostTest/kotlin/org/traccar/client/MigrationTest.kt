@@ -34,6 +34,9 @@ class MigrationTest {
         assertEquals(2, batch.map { assertNotNull(it.id) }.toSet().size)
         assertEquals(null, batch.first().deviceId)
         assertEquals(2, queue.status().queued)
+
+        queue.rejectWithoutDevice("no_device")
+        assertEquals(QueueStatus(queued = 0, rejected = 2, queuedAlarms = 0, rejectedAlarms = 0), queue.status())
     }
 
     @Test

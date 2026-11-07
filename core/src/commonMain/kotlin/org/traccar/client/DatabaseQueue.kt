@@ -53,6 +53,14 @@ class DatabaseQueue(driver: SqlDriver) : PositionQueue {
         }
     }
 
+    override suspend fun rejectWithoutDevice(reason: String) {
+        withContext(Dispatchers.IO) {
+            mutex.withLock {
+                queries.rejectWithoutDevice(reason)
+            }
+        }
+    }
+
     override suspend fun nextBatch(limit: Int): List<Position> = withContext(Dispatchers.IO) {
         mutex.withLock {
             queries.nextBatch(limit.toLong(), ::toPosition).executeAsList()
