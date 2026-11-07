@@ -28,6 +28,7 @@ class HttpUploader(
                 position.battery?.let { append("batt", it.toString()) }
                 position.charging?.let { append("charge", it.toString()) }
                 position.alarm?.let { append("alarm", it) }
+                position.extras.forEach { (name, value) -> if (!contains(name)) append(name, value) }
             },
         ) {
             config.headers.forEach { (name, value) -> headers.append(name, value) }

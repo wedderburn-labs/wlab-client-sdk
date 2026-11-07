@@ -19,7 +19,8 @@ All of it is additive. With `batch.enabled` left off, and without calling `queue
 - **Batched uploader** (`Config.batch`, `HttpBatchUploader`, `BatchEncoder`): one gzip JSON array per request, up to 500 positions or 1 MB uncompressed. The newest fix goes first, then the backlog oldest to newest. Only ids in the response's `accepted` list are deleted. Sends after a gap in coverage are spread by a random delay, and the shared HTTP client reuses its connection.
 - **Queue status** (`Tracker.queueStatus`, `getQueueStatus` in React Native): counts of queued and rejected positions.
 - **Offline one-off position** (`Tracker.queuePosition`, `queuePosition` in React Native): stored before it is sent, so an SOS survives no signal and app restarts. Alarms lead every batch and skip the flush delay and jitter.
-- **Queue schema** (migration `3.sqm`): each queued position keeps a client id, its device, alarm, motion, extras and rejection reason. Keeping the device means a later config change can't relabel a position.
+- **Queue schema** (migration `3.sqm`): each queued position keeps a client id, its device, alarm, motion, extras and rejection reason. On the batched path, keeping the device means a later config change can't relabel a position. The single-position path still sends the current `deviceId`.
+- **Extras on single uploads** (`HttpUploader`): with batching off, `extras` go as plain form parameters, for example `alarm=sos&sosId=<id>`. A name the uploader already sends is skipped, so an extra can't replace `id`.
 
 Files changed from upstream: `git diff upstream/main...main --stat`.
 
