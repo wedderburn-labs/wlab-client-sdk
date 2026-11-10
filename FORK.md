@@ -20,6 +20,7 @@ All of it is additive. With `batch.enabled` left off, and without calling `queue
 - **Queue status** (`Tracker.queueStatus`, `getQueueStatus` in React Native): counts of queued and rejected positions.
 - **Offline one-off position** (`Tracker.queuePosition`, `queuePosition` in React Native): stored before it is sent, so an SOS survives no signal and app restarts. Alarms lead every batch and skip the flush delay and jitter.
 - **Queue schema** (migration `3.sqm`): each queued position keeps a client id, its device, alarm, motion, extras and rejection reason. Keeping the device means a later config change can't relabel a position, on either upload path. A row with no device, which only an upgrade from upstream leaves, is never sent: at startup it is kept and marked rejected with the reason `no_device`.
+- **Low-power watch while stationary** (iOS, `RegionDetector`): while tracking is paused, a coarse location watch runs beside the region, so iOS keeps the app running and a fix clearly outside the spot resumes tracking. Without it, iOS could end the app overnight and the region exit never arrived.
 - **Extras on single uploads** (`HttpUploader`): with batching off, `extras` go as plain form parameters, for example `alarm=sos&sosId=<id>`. A name the uploader already sends is skipped, so an extra can't replace `id`.
 
 Files changed from upstream: `git diff upstream/main...main --stat`.

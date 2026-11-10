@@ -10,12 +10,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.cinterop.useContents
 import platform.CoreLocation.CLCircularRegion
+import platform.CoreLocation.CLLocation
 import platform.CoreLocation.CLLocationCoordinate2DMake
 import platform.CoreLocation.CLLocationManager
 import platform.CoreLocation.CLLocationManagerDelegateProtocol
 import platform.CoreLocation.CLRegion
 import platform.CoreLocation.kCLAuthorizationStatusAuthorizedAlways
+import platform.CoreLocation.kCLLocationAccuracyThreeKilometers
 import platform.Foundation.NSError
 import platform.darwin.NSObject
 
@@ -64,6 +67,18 @@ class RegionDetector(
                     scope.launch { signals.emit(Signal.StationaryExit) }
                 }
             }
+            // WLAB: the low-power watch below. Any fix that is clearly outside the spot counts as leaving it.
+            override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
+                val moved = didUpdateLocations.any { value ->
+                    val location = value as CLLocation
+                    val (lat, lon) = location.coordinate.useContents { this.latitude to this.longitude }
+                    movedBeyond(latitude, longitude, lat, lon, location.horizontalAccuracy, radius)
+                }
+                if (moved) {
+                    Log.log("Low-power watch: moved")
+                    scope.launch { signals.emit(Signal.StationaryExit) }
+                }
+            }
             override fun locationManager(manager: CLLocationManager, didFailWithError: NSError) {}
         }
         delegate = newDelegate
@@ -89,6 +104,15 @@ class RegionDetector(
         region.notifyOnEntry = false
         newManager.startMonitoringForRegion(region)
         Log.log("Region monitoring registered")
+        // WLAB: with no location updates running, iOS suspends the app and can end it overnight, and an ended
+        // app missed the region exit when the rider set off (10 Nov 2026). A coarse watch keeps it running.
+        // It uses cell and Wi-Fi rather than GPS, so it costs little.
+        newManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
+        newManager.distanceFilter = radius.toDouble()
+        newManager.pausesLocationUpdatesAutomatically = false
+        newManager.startUpdatingLocation()
+        newManager.startMonitoringSignificantLocationChanges()
+        Log.log("Low-power watch started")
         manager = newManager
     }
 
@@ -97,6 +121,8 @@ class RegionDetector(
             current.monitoredRegions.forEach { region ->
                 (region as? CLRegion)?.let { current.stopMonitoringForRegion(it) }
             }
+            current.stopUpdatingLocation()
+            current.stopMonitoringSignificantLocationChanges()
             current.delegate = null
             Log.log("Region monitoring removed")
         }
