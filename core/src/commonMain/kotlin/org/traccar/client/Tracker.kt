@@ -89,7 +89,9 @@ suspend fun sharedTracker(): Tracker? = sharedMutex.withLock {
     sharedTrackerInstance?.let { return@withLock it }
     val koin = openKoin()
     val persisted = koin.get<ConfigStore>().load() ?: return@withLock null
-    install(koin, persisted)
+    install(koin, persisted).also {
+        Log.log("Tracker restored from saved settings, tracking ${if (it.state.value.enabled) "on" else "off"}")
+    }
 }
 
 suspend fun sharedTracker(config: Config): Tracker = sharedMutex.withLock {

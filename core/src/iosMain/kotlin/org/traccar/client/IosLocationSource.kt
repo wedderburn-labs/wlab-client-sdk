@@ -61,6 +61,10 @@ class IosLocationSource(
             override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
                 didUpdateLocations.forEach { value ->
                     val location = value as CLLocation
+                    if (location.isStale()) {
+                        Log.log("Location ignored, cached ${location.ageSeconds()}s old")
+                        return@forEach
+                    }
                     lastLocation = location
                     positions.tryEmit(location.toPosition())
                     pendingLocation?.complete(location)
@@ -177,6 +181,13 @@ class IosLocationSource(
         return (fresh ?: active.location)?.toPosition()
     }
 }
+
+@OptIn(ExperimentalForeignApi::class)
+internal fun CLLocation.fixTimeMs(): Long = (timestamp.timeIntervalSince1970 * 1000).toLong()
+
+internal fun CLLocation.isStale(): Boolean = isStaleFix(fixTimeMs(), (NSDate().timeIntervalSince1970 * 1000).toLong())
+
+internal fun CLLocation.ageSeconds(): Long = ((NSDate().timeIntervalSince1970 * 1000).toLong() - fixTimeMs()) / 1000
 
 private fun Accuracy.toIosAccuracy(): Double = when (this) {
     Accuracy.HIGHEST -> kCLLocationAccuracyBestForNavigation

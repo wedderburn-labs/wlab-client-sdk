@@ -3,6 +3,9 @@ package org.traccar.client
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +33,8 @@ class RegionDetector(
 ) : SignalSource {
 
     private val radius = config.location.stationaryRadiusMeters
+    private val heartbeatSeconds = config.location.heartbeatIntervalSeconds
+    private var heartbeat: Job? = null
     private val mainScope = scope + Dispatchers.Main
 
     override val signals = MutableSharedFlow<Signal>(extraBufferCapacity = 8)
@@ -71,6 +76,10 @@ class RegionDetector(
             override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
                 val moved = didUpdateLocations.any { value ->
                     val location = value as CLLocation
+                    if (location.isStale()) {
+                        Log.log("Low-power watch: cached fix ${location.ageSeconds()}s old ignored")
+                        return@any false
+                    }
                     val (lat, lon) = location.coordinate.useContents { this.latitude to this.longitude }
                     movedBeyond(latitude, longitude, lat, lon, location.horizontalAccuracy, radius)
                 }
@@ -114,9 +123,27 @@ class RegionDetector(
         newManager.startMonitoringSignificantLocationChanges()
         Log.log("Low-power watch started")
         manager = newManager
+        startHeartbeat()
+    }
+
+    // WLAB: while still, check in every heartbeatIntervalSeconds so crew can tell a parked rider from a dead phone.
+    // The low-power watch keeps the app running, so a plain timer fires. iOS's background tasks were not used:
+    // they need registering during app launch, and iOS decides when, if ever, they run.
+    private fun startHeartbeat() {
+        if (heartbeatSeconds <= 0) return
+        heartbeat?.cancel()
+        heartbeat = scope.launch {
+            while (isActive) {
+                delay(heartbeatSeconds * 1000L)
+                Log.log("Heartbeat due")
+                signals.emit(Signal.HeartbeatTick)
+            }
+        }
     }
 
     private fun unregister() {
+        heartbeat?.cancel()
+        heartbeat = null
         manager?.let { current ->
             current.monitoredRegions.forEach { region ->
                 (region as? CLRegion)?.let { current.stopMonitoringForRegion(it) }

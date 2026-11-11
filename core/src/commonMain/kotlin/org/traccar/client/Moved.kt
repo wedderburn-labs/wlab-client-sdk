@@ -28,3 +28,12 @@ internal fun movedBeyond(
     val distance = 2 * EARTH_RADIUS * asin(sqrt(h))
     return distance - accuracyMeters.coerceAtLeast(0.0) > radiusMeters
 }
+
+/** WLAB: fixes older than this when they arrive are iOS's cached location, not where the device is now. */
+internal const val STALE_FIX_MS = 60_000L
+
+/**
+ * Whether a fix is too old to act on. iOS hands a new location manager its cached location first, and on
+ * 10 Nov 2026 a fix from hours earlier, 300 m away, resumed tracking and was uploaded as a position.
+ */
+internal fun isStaleFix(fixTimeMs: Long, nowMs: Long): Boolean = nowMs - fixTimeMs > STALE_FIX_MS

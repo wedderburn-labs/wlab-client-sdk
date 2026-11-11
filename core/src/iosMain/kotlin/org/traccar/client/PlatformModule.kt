@@ -26,9 +26,8 @@ internal actual fun platformModule(): Module = module {
             if (config.location.stopDetection) {
                 add(get<MotionActivityDetector>())
                 add(get<RegionDetector>())
-                if (config.location.heartbeatIntervalSeconds > 0) {
-                    add(get<IosBackgroundHeartbeat>())
-                }
+                // WLAB: the heartbeat runs inside RegionDetector. This background task was never registered with
+                // iOS, and a task submitted without a launch handler can end the app when iOS runs it.
             }
         }
     }
